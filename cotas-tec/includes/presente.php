@@ -34,6 +34,28 @@ function ctec_rota_presente( $request ) {
 	return is_wp_error( $res ) ? $res : rest_ensure_response( $res );
 }
 
+define( 'CTEC_LIMITE_HORA', 20 );
+
+/** Janela do limite: array( envios, início ). Vazia ou vencida = zero envios. */
+function ctec_janela_limite( $chave ) {
+	$j = get_transient( $chave );
+	if ( is_array( $j ) && isset( $j[0], $j[1] ) && $j[1] + HOUR_IN_SECONDS > time() ) {
+		return array( (int) $j[0], (int) $j[1] );
+	}
+	return array( 0, time() );
+}
+
+/** Soma um envio na janela fixa; o transient expira junto com a janela original. */
+function ctec_contar_limite( $chave, array $janela ) {
+	$ttl = max( 1, $janela[1] + HOUR_IN_SECONDS - time() );
+	set_transient( $chave, array( $janela[0] + 1, $janela[1] ), $ttl );
+}
+
+/** Corta em $max caracteres (multibyte). */
+function ctec_cortar( $texto, $max ) {
+	return function_exists( 'mb_substr' ) ? mb_substr( $texto, 0, $max, 'UTF-8' ) : substr( $texto, 0, $max );
+}
+
 /** Texto de uma linha só, sem tags (nada de quebra de linha em nomes e cabeçalhos). */
 function ctec_linha( $texto ) {
 	return trim( preg_replace( '/\s+/u', ' ', sanitize_text_field( (string) $texto ) ) );
@@ -46,16 +68,22 @@ function ctec_processar_presente( array $dados, $ip ) {
 		return array( 'ok' => true, 'conta' => '' );
 	}
 
-	// 2. Limite por IP: 10 envios por hora.
-	$chave = 'ctec_ip_' . md5( (string) $ip );
-	$n     = (int) get_transient( $chave ) + 1;
-	set_transient( $chave, $n, HOUR_IN_SECONDS );
-	if ( $n > 10 ) {
+	// Campos que não são texto/número (lista, objeto) viram vazio: a validação cuida do resto.
+	foreach ( $dados as $k => $v ) {
+		if ( ! is_scalar( $v ) ) {
+			$dados[ $k ] = '';
+		}
+	}
+
+	// 2. Limite por IP e casal: 20 envios válidos por hora (confere aqui, conta depois da validação).
+	$id     = isset( $dados['casal'] ) ? absint( $dados['casal'] ) : 0;
+	$chave  = 'ctec_ip_' . md5( $ip . '|' . $id );
+	$janela = ctec_janela_limite( $chave );
+	if ( $janela[0] >= CTEC_LIMITE_HORA ) {
 		return new WP_Error( 'ctec_limite', 'Muitos envios. Tente de novo mais tarde.', array( 'status' => 429 ) );
 	}
 
 	// 3. Casal publicado.
-	$id   = isset( $dados['casal'] ) ? absint( $dados['casal'] ) : 0;
 	$post = $id ? get_post( $id ) : null;
 	if ( ! $post || 'ctec_casal' !== $post->post_type || 'publish' !== $post->post_status ) {
 		return new WP_Error( 'ctec_casal', 'Página não encontrada.', array( 'status' => 404 ) );
@@ -68,8 +96,13 @@ function ctec_processar_presente( array $dados, $ip ) {
 		return $p;
 	}
 
+	// Presente válido: agora conta no limite (janela fixa, mantém o fim original).
+	ctec_contar_limite( $chave, $janela );
+
 	// 5. Gravação.
-	ctec_gravar_presente( $p );
+	if ( ! ctec_gravar_presente( $p ) ) {
+		return new WP_Error( 'ctec_erro', 'Não foi possível registrar o presente. Tente de novo.', array( 'status' => 500 ) );
+	}
 
 	// 6. Aviso ao casal (se falhar, o presente continua registrado).
 	if ( '' !== $casal['email'] ) {
@@ -86,10 +119,10 @@ function ctec_erro_dados( $mensagem ) {
 
 /** Confere os dados do convidado; nome e valor das cotas fixas vêm sempre do cadastro. */
 function ctec_validar_presente( array $dados, array $casal ) {
-	$nome     = ctec_linha( isset( $dados['nome'] ) ? $dados['nome'] : '' );
-	$email    = sanitize_email( isset( $dados['email'] ) ? $dados['email'] : '' );
-	$whatsapp = ctec_linha( isset( $dados['whatsapp'] ) ? $dados['whatsapp'] : '' );
-	$msg      = sanitize_textarea_field( isset( $dados['mensagem'] ) ? (string) $dados['mensagem'] : '' );
+	$nome     = ctec_cortar( ctec_linha( isset( $dados['nome'] ) ? $dados['nome'] : '' ), 80 );
+	$email    = ctec_cortar( sanitize_email( isset( $dados['email'] ) ? $dados['email'] : '' ), 100 );
+	$whatsapp = ctec_cortar( ctec_linha( isset( $dados['whatsapp'] ) ? $dados['whatsapp'] : '' ), 30 );
+	$msg      = ctec_cortar( sanitize_textarea_field( isset( $dados['mensagem'] ) ? (string) $dados['mensagem'] : '' ), 500 );
 
 	if ( '' === $nome ) {
 		return ctec_erro_dados( 'Informe o seu nome.' );
@@ -103,7 +136,7 @@ function ctec_validar_presente( array $dados, array $casal ) {
 
 	$cota = isset( $dados['cota'] ) ? $dados['cota'] : '';
 	if ( 'livre' === $cota ) {
-		$nome_cota = ctec_linha( isset( $dados['presente_nome'] ) ? $dados['presente_nome'] : '' );
+		$nome_cota = ctec_cortar( ctec_linha( isset( $dados['presente_nome'] ) ? $dados['presente_nome'] : '' ), 80 );
 		$valor     = ctec_valor( isset( $dados['presente_valor'] ) ? $dados['presente_valor'] : '' );
 		if ( '' === $nome_cota ) {
 			return ctec_erro_dados( 'Diga qual presente você quer dar.' );
@@ -141,15 +174,16 @@ function ctec_gravar_presente( array $p ) {
 			'post_title'  => $p['cota'] . ' — ' . $p['nome'],
 		)
 	);
-	if ( $id && ! is_wp_error( $id ) ) {
-		update_post_meta( $id, '_ctec_casal', $p['casal'] );
-		update_post_meta( $id, '_ctec_cota', $p['cota'] );
-		update_post_meta( $id, '_ctec_valor', $p['valor'] );
-		update_post_meta( $id, '_ctec_nome', $p['nome'] );
-		update_post_meta( $id, '_ctec_email', $p['email'] );
-		update_post_meta( $id, '_ctec_whatsapp', $p['whatsapp'] );
-		update_post_meta( $id, '_ctec_mensagem', $p['mensagem'] );
+	if ( ! $id || is_wp_error( $id ) ) {
+		return 0;
 	}
+	update_post_meta( $id, '_ctec_casal', $p['casal'] );
+	update_post_meta( $id, '_ctec_cota', $p['cota'] );
+	update_post_meta( $id, '_ctec_valor', $p['valor'] );
+	update_post_meta( $id, '_ctec_nome', $p['nome'] );
+	update_post_meta( $id, '_ctec_email', $p['email'] );
+	update_post_meta( $id, '_ctec_whatsapp', $p['whatsapp'] );
+	update_post_meta( $id, '_ctec_mensagem', $p['mensagem'] );
 	return (int) $id;
 }
 
@@ -167,10 +201,11 @@ function ctec_email_presente( array $p, array $casal ) {
 		'',
 		'Confira o depósito na sua conta antes de agradecer.',
 	);
+	$nome_cab = trim( preg_replace( '/[,;"<>]/', '', $p['nome'] ) );
 	return array(
 		'para'       => $casal['email'],
 		'assunto'    => 'Você recebeu um presente: ' . $p['cota'],
 		'corpo'      => implode( "\n", $linhas ),
-		'cabecalhos' => array( 'Reply-To: ' . $p['nome'] . ' <' . $p['email'] . '>' ),
+		'cabecalhos' => array( 'Reply-To: ' . $nome_cab . ' <' . $p['email'] . '>' ),
 	);
 }

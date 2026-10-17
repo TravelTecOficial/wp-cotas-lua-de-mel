@@ -21,6 +21,18 @@ foreach ( array( 'casal', 'pagina', 'presente', 'admin', 'atualizador' ) as $cte
 	require_once CTEC_DIR . 'includes/' . $ctec_arquivo . '.php';
 }
 
+add_action( 'init', 'ctec_conferir_versao', 20 );
+
+/** Depois de atualizar o plugin, renova as regras de endereço uma vez (roda após ctec_registrar_tipos). */
+function ctec_conferir_versao() {
+	if ( get_option( 'ctec_versao' ) !== CTEC_VERSION ) {
+		flush_rewrite_rules();
+		update_option( 'ctec_versao', CTEC_VERSION );
+	}
+}
+
+register_deactivation_hook( __FILE__, 'flush_rewrite_rules' );
+
 register_activation_hook(
 	__FILE__,
 	function () {

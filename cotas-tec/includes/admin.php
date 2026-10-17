@@ -175,7 +175,7 @@ function ctec_filtrar_lista( $query ) {
 /** Download do CSV: precisa de permissão e nonce. */
 function ctec_baixar_csv() {
 	$nonce = isset( $_GET['_wpnonce'] ) ? $_GET['_wpnonce'] : '';
-	if ( ! current_user_can( 'edit_posts' ) || ! wp_verify_nonce( $nonce, 'ctec_csv' ) ) {
+	if ( ! current_user_can( 'edit_others_posts' ) || ! wp_verify_nonce( $nonce, 'ctec_csv' ) ) {
 		wp_die( 'Sem permissão.', '', array( 'response' => 403 ) );
 	}
 	$id    = isset( $_GET['ctec_filtro_casal'] ) ? absint( $_GET['ctec_filtro_casal'] ) : 0;

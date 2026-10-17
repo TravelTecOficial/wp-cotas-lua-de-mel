@@ -89,4 +89,15 @@ $_POST = array( 'ctec_casal_nonce' => 'nonce-ctec_casal', 'ctec_cidade' => 'Roma
 ctec_salvar_casal_gancho( 10 );
 igual( 'Roma', get_post_meta( 10, '_ctec_cidade', true ), 'com nonce grava' );
 
+// nunca listado: busca, menus, sitemaps
+ok( true === $c['exclude_from_search'], 'casal fora da busca' );
+ok( false === $c['show_in_nav_menus'], 'casal fora dos menus' );
+$sm = ctec_tirar_dos_sitemaps( array( 'post' => 1, 'page' => 1, 'ctec_casal' => 1 ) );
+igual( array( 'post' => 1, 'page' => 1 ), $sm, 'sitemap do WordPress sem ctec_casal' );
+ok( in_array( 'ctec_tirar_dos_sitemaps', $GLOBALS['ct_ganchos']['wp_sitemaps_post_types'], true ), 'filtro wp_sitemaps_post_types registrado' );
+igual( true, ctec_tirar_do_sitemap_rank_math( false, 'ctec_casal' ), 'Rank Math exclui ctec_casal' );
+igual( false, ctec_tirar_do_sitemap_rank_math( false, 'post' ), 'Rank Math não exclui post' );
+igual( true, ctec_tirar_do_sitemap_rank_math( true, 'post' ), 'Rank Math preserva exclusão alheia' );
+igual( 10, $GLOBALS['ct_prio']['rank_math/sitemap/exclude_post_type']['ctec_tirar_do_sitemap_rank_math'], 'filtro Rank Math prioridade 10' );
+
 echo "\nFALHAS=" . $GLOBALS['ct_falhas'] . "\n";

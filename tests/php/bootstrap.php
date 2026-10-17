@@ -75,6 +75,7 @@ function get_post_meta( $id, $chave = '', $unico = false ) {
 function update_post_meta( $id, $chave, $valor ) { $GLOBALS['ct_meta'][ $id ][ $chave ] = $valor; return true; }
 function get_post( $id ) { return isset( $GLOBALS['ct_posts'][ $id ] ) ? $GLOBALS['ct_posts'][ $id ] : null; }
 function wp_insert_post( $dados, $erro = false ) {
+	if ( ! empty( $GLOBALS['ct_falha_insert'] ) ) { return $GLOBALS['ct_falha_insert'] === true ? 0 : $GLOBALS['ct_falha_insert']; }
 	$id = count( $GLOBALS['ct_posts'] ) + 1;
 	$GLOBALS['ct_posts'][ $id ] = (object) array_merge( array( 'ID' => $id ), $dados );
 	return $id;
@@ -85,9 +86,11 @@ function wp_mail( $para, $assunto, $corpo, $cabecalhos = '' ) {
 	return $GLOBALS['ct_mail_ok'];
 }
 
-function add_action( $g, $cb, $p = 10, $n = 1 ) { $GLOBALS['ct_ganchos'][ $g ][] = $cb; }
-function add_filter( $g, $cb, $p = 10, $n = 1 ) { $GLOBALS['ct_ganchos'][ $g ][] = $cb; }
-function register_activation_hook( $f, $cb ) {}
+function add_action( $g, $cb, $p = 10, $n = 1 ) { $GLOBALS['ct_ganchos'][ $g ][] = $cb; $GLOBALS['ct_prio'][ $g ][ is_string( $cb ) ? $cb : 'closure' ] = $p; }
+function add_filter( $g, $cb, $p = 10, $n = 1 ) { $GLOBALS['ct_ganchos'][ $g ][] = $cb; $GLOBALS['ct_prio'][ $g ][ is_string( $cb ) ? $cb : 'closure' ] = $p; }
+function is_singular( $tipo = '' ) { return ! empty( $GLOBALS['ct_singular'] ) && ( '' === $tipo || $GLOBALS['ct_singular'] === $tipo ); }
+function register_activation_hook( $f, $cb ) { $GLOBALS['ct_hooks']['ativar'] = $cb; }
+function register_deactivation_hook( $f, $cb ) { $GLOBALS['ct_hooks']['desativar'] = $cb; }
 function plugin_dir_path( $f ) { return '/p/'; }
 function plugin_dir_url( $f ) { return 'https://exemplo.test/wp-content/plugins/cotas-tec/'; }
 function plugin_basename( $f ) { return 'cotas-tec/cotas-tec.php'; }
@@ -99,7 +102,7 @@ function absint( $v ) { return abs( (int) $v ); }
 function current_user_can( $cap, $id = 0 ) { return ! empty( $GLOBALS['ct_pode'] ); }
 function wp_verify_nonce( $nonce, $acao ) { return $nonce === 'nonce-' . $acao; }
 function wp_create_nonce( $acao ) { return 'nonce-' . $acao; }
-function flush_rewrite_rules() {}
+function flush_rewrite_rules() { $GLOBALS['ct_flush'] = ( isset( $GLOBALS['ct_flush'] ) ? $GLOBALS['ct_flush'] : 0 ) + 1; }
 function register_rest_route( $ns, $rota, $args = array() ) { $GLOBALS['ct_rotas'][ $ns . $rota ] = $args; return true; }
 function rest_ensure_response( $x ) { return $x; }
 function __return_true() { return true; }

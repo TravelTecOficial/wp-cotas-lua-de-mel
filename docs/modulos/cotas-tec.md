@@ -18,6 +18,8 @@ Sem pagamento online. Desenho completo: `docs/superpowers/specs/2026-10-17-cotas
 - Casal recebe e-mail (cota, valor, dados do convidado, Reply-To = convidado); convidado e agência não recebem.
 - Cada presente fica gravado no painel (somente leitura, filtro por casal, CSV).
 - Sem página de busca/lista de casais; acesso só pelo link do casal. Página do casal com `noindex`.
+- Casais ficam fora da busca do site e dos sitemaps (WordPress e Rank Math): nunca listados.
+- Limite anti-spam: 20 presentes válidos por hora por IP + casal (janela fixa); tentativas inválidas não contam.
 - Sem caixa de consentimento: contatos não são usados para marketing.
 - Não mexer em cabeçalho/rodapé/Theme Builder do site.
 - Endereço base `/lua-de-mel/`; cotas padrão Bronze 50, Prata 100, Ouro 250, Diamante 500, Safira 1.000.

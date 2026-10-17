@@ -98,18 +98,47 @@ igual( 0, count( ct_presentes() ), 'isca não grava' );
 igual( 0, count( $GLOBALS['ct_emails'] ), 'isca não envia' );
 igual( array(), $GLOBALS['ct_transients'], 'isca não conta no limite' );
 
-// limite
+// limite: 20 por hora por IP + casal, só envios válidos contam
 ct_reset();
-for ( $i = 1; $i <= 10; $i++ ) {
+$ch = 'ctec_ip_' . md5( '9.9.9.9|1' );
+for ( $i = 1; $i <= 20; $i++ ) {
 	$r = ctec_processar_presente( ct_dados(), '9.9.9.9' );
 }
-ok( ! is_wp_error( $r ), '10º envio passa' );
+ok( ! is_wp_error( $r ), '20º envio passa' );
 $r = ctec_processar_presente( ct_dados(), '9.9.9.9' );
-ok( ct_erro( $r, 429 ), '11º envio -> 429' );
+ok( ct_erro( $r, 429 ), '21º envio -> 429' );
 igual( 'Muitos envios. Tente de novo mais tarde.', $r->get_error_message(), 'mensagem do limite' );
-igual( HOUR_IN_SECONDS, $GLOBALS['ct_transients'][ 'ctec_ip_' . md5( '9.9.9.9' ) ][1], 'TTL de 1 hora' );
+igual( 20, $GLOBALS['ct_transients'][ $ch ][0][0], 'contador em 20' );
+igual( 20, count( ct_presentes() ), 'o 21º não grava' );
 $r = ctec_processar_presente( ct_dados(), '8.8.8.8' );
 ok( ! is_wp_error( $r ), 'outro IP não é afetado' );
+ct_casal( 3 );
+$r = ctec_processar_presente( ct_dados( array( 'casal' => 3 ) ), '9.9.9.9' );
+ok( ! is_wp_error( $r ), 'mesmo IP em outro casal não é afetado' );
+
+// janela fixa: o fim original é mantido
+ct_reset();
+ctec_processar_presente( ct_dados(), '5.5.5.5' );
+$ch = 'ctec_ip_' . md5( '5.5.5.5|1' );
+$ini = $GLOBALS['ct_transients'][ $ch ][0][1];
+$GLOBALS['ct_transients'][ $ch ][0][1] = $ini - 1800; // janela começou há 30 min
+ctec_processar_presente( ct_dados(), '5.5.5.5' );
+igual( 2, $GLOBALS['ct_transients'][ $ch ][0][0], 'segundo envio soma' );
+igual( $ini - 1800, $GLOBALS['ct_transients'][ $ch ][0][1], 'início da janela não muda' );
+ok( $GLOBALS['ct_transients'][ $ch ][1] <= 1800 && $GLOBALS['ct_transients'][ $ch ][1] >= 1790, 'TTL é o resto da janela' );
+$GLOBALS['ct_transients'][ $ch ][0] = array( 20, time() - HOUR_IN_SECONDS - 5 ); // janela vencida
+$r = ctec_processar_presente( ct_dados(), '5.5.5.5' );
+ok( ! is_wp_error( $r ), 'janela vencida zera o limite' );
+igual( 1, $GLOBALS['ct_transients'][ $ch ][0][0], 'nova janela começa em 1' );
+
+// tentativas inválidas não contam
+ct_reset();
+for ( $i = 1; $i <= 30; $i++ ) {
+	ctec_processar_presente( ct_dados( array( 'email' => 'x' ) ), '4.4.4.4' );
+}
+igual( array(), $GLOBALS['ct_transients'], 'inválidos não contam no limite' );
+$r = ctec_processar_presente( ct_dados(), '4.4.4.4' );
+ok( ! is_wp_error( $r ), 'depois de 30 inválidos ainda passa' );
 
 // falha de e-mail
 ct_reset();
@@ -133,6 +162,52 @@ nao_contem( '<b>', $e['corpo'], 'corpo sem tags' );
 nao_contem( '<img', $e['corpo'], 'corpo sem img' );
 contem( 'Oi', $e['corpo'], 'mensagem preservada sem tags' );
 nao_contem( "\n", implode( '', (array) $e['cabecalhos'] ), 'cabeçalho sem quebra de linha' );
+
+// Reply-To sem , ; " < >
+ct_reset();
+ctec_processar_presente( ct_dados( array( 'nome' => 'Ana, "Bia"; Cia' ) ), '3.3.3.3' );
+$cab = implode( "
+", (array) $GLOBALS['ct_emails'][0]['cabecalhos'] );
+igual( 'Reply-To: Ana Bia Cia <joao@exemplo.test>', $cab, 'Reply-To sem , ; "' );
+$e = ctec_email_presente( array( 'cota' => 'X', 'valor' => 1.0, 'nome' => 'A<b>,C;"D', 'email' => 'a@b.co', 'whatsapp' => '1', 'mensagem' => '' ), array( 'email' => 'c@d.co' ) );
+igual( 'Reply-To: AbCD <a@b.co>', $e['cabecalhos'][0], 'Reply-To sem < > (função direta)' );
+
+// limites de tamanho
+ct_reset();
+ctec_processar_presente( ct_dados( array( 'nome' => str_repeat( 'á', 100 ), 'mensagem' => str_repeat( 'é', 600 ), 'whatsapp' => str_repeat( '1', 50 ), 'email' => str_repeat( 'a', 40 ) . '@' . str_repeat( 'b', 50 ) . '.' . str_repeat( 'c', 50 ) . '.com' ) ), '3.3.3.4' );
+$p = ct_presentes();
+$m = $GLOBALS['ct_meta'][ $p[0]->ID ];
+igual( 80, mb_strlen( $m['_ctec_nome'], 'UTF-8' ), 'nome cortado em 80' );
+igual( 500, mb_strlen( $m['_ctec_mensagem'], 'UTF-8' ), 'mensagem cortada em 500' );
+igual( 30, strlen( $m['_ctec_whatsapp'] ), 'whatsapp cortado em 30' );
+igual( 100, strlen( $m['_ctec_email'] ), 'e-mail cortado em 100' );
+ct_reset();
+ctec_processar_presente( ct_dados( array( 'cota' => 'livre', 'presente_nome' => str_repeat( 'ç', 120 ), 'presente_valor' => '10' ) ), '3.3.3.5' );
+$p = ct_presentes();
+igual( 80, mb_strlen( $GLOBALS['ct_meta'][ $p[0]->ID ]['_ctec_cota'], 'UTF-8' ), 'presente_nome cortado em 80' );
+
+// campos que não são texto não derrubam
+ct_reset();
+$r = ctec_processar_presente( ct_dados( array( 'nome' => array( 'x' ), 'cota' => array( 1 ) ) ), '3.3.3.6' );
+ok( ct_erro( $r, 400 ), 'nome em array -> 400, sem erro fatal' );
+$r = ctec_processar_presente( ct_dados( array( 'mensagem' => array( 'a' => 'b' ), 'whatsapp' => array(), 'email' => new stdClass() ) ), '3.3.3.6' );
+ok( ct_erro( $r, 400 ), 'objeto/lista nos campos -> 400' );
+$r = ctec_processar_presente( ct_dados( array( 'cota' => array( 1 ) ) ), '3.3.3.6' );
+ok( ct_erro( $r, 400 ), 'cota em array -> 400' );
+$r = ctec_processar_presente( ct_dados( array( 'casal' => array( 1 ) ) ), '3.3.3.6' );
+ok( ct_erro( $r, 404 ), 'casal em array -> 404' );
+
+// falha ao gravar: 500 e sem e-mail
+ct_reset();
+$GLOBALS['ct_falha_insert'] = true;
+$r = ctec_processar_presente( ct_dados(), '3.3.3.7' );
+ok( ct_erro( $r, 500 ), 'gravação falha -> 500' );
+igual( 'Não foi possível registrar o presente. Tente de novo.', $r->get_error_message(), 'mensagem do 500' );
+igual( 0, count( $GLOBALS['ct_emails'] ), 'gravação falha não envia e-mail' );
+$GLOBALS['ct_falha_insert'] = new WP_Error( 'x', 'y' );
+$r = ctec_processar_presente( ct_dados(), '3.3.3.7' );
+ok( ct_erro( $r, 500 ), 'WP_Error ao gravar -> 500' );
+unset( $GLOBALS['ct_falha_insert'] );
 
 // rota
 ok( in_array( 'ctec_registrar_rota', $GLOBALS['ct_ganchos']['rest_api_init'], true ), 'rota registrada em rest_api_init' );

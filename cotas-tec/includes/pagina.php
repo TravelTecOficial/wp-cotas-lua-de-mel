@@ -8,8 +8,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-add_filter( 'template_include', 'ctec_template_casal' );
-add_action( 'wp_head', 'ctec_noindex' );
+// Prioridade 99: o Theme Builder do Elementor Pro (11) não pode trocar o modelo do casal.
+add_filter( 'template_include', 'ctec_template_casal', 99 );
+add_filter( 'wp_robots', 'ctec_robots' );
+add_filter( 'rank_math/frontend/robots', 'ctec_robots_rank_math' );
 add_action( 'wp_enqueue_scripts', 'ctec_assets_publicos' );
 
 /** R$ 1.000,00 */
@@ -25,10 +27,23 @@ function ctec_template_casal( $modelo ) {
 	return $modelo;
 }
 
-function ctec_noindex() {
+/** Core (WP 5.7+): noindex, nofollow na página do casal. */
+function ctec_robots( $robots ) {
 	if ( is_singular( 'ctec_casal' ) ) {
-		echo '<meta name="robots" content="noindex, nofollow">' . "\n";
+		$robots['noindex']  = true;
+		$robots['nofollow'] = true;
+		unset( $robots['index'], $robots['follow'], $robots['max-image-preview'] );
 	}
+	return $robots;
+}
+
+/** Rank Math substitui a meta de robots do core: repete a regra para ele. */
+function ctec_robots_rank_math( $robots ) {
+	if ( is_singular( 'ctec_casal' ) ) {
+		$robots['index']  = 'noindex';
+		$robots['follow'] = 'nofollow';
+	}
+	return $robots;
 }
 
 function ctec_assets_publicos() {
@@ -98,7 +113,7 @@ function ctec_render_casal( array $casal ) {
 		. '<div class="ctec-livre"><label>Nome do presente *<input type="text" name="presente_nome" maxlength="80"></label>'
 		. '<label>Valor (R$) *<input type="text" name="presente_valor" inputmode="decimal" placeholder="150,00"></label></div>'
 		. '<label>Seu nome *<input type="text" name="nome" maxlength="80" required></label>'
-		. '<label>E-mail *<input type="email" name="email" maxlength="120" required></label>'
+		. '<label>E-mail *<input type="email" name="email" maxlength="100" required></label>'
 		. '<label>WhatsApp *<input type="tel" name="whatsapp" maxlength="30" required></label>'
 		. '<label>Mensagem para os noivos<textarea name="mensagem" rows="3" maxlength="500"></textarea></label>'
 		. '<input type="text" name="ctec_site" value="" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute;left:-9999px">'

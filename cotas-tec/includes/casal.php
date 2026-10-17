@@ -14,6 +14,21 @@ add_action( 'init', 'ctec_registrar_tipos' );
 add_action( 'save_post_ctec_casal', 'ctec_salvar_casal_gancho' );
 add_action( 'add_meta_boxes', 'ctec_registrar_caixa' );
 add_action( 'admin_enqueue_scripts', 'ctec_admin_assets' );
+add_filter( 'wp_sitemaps_post_types', 'ctec_tirar_dos_sitemaps' );
+add_filter( 'rank_math/sitemap/exclude_post_type', 'ctec_tirar_do_sitemap_rank_math', 10, 2 );
+
+/** Casais nunca entram no sitemap do WordPress. */
+function ctec_tirar_dos_sitemaps( $tipos ) {
+	if ( is_array( $tipos ) ) {
+		unset( $tipos['ctec_casal'] );
+	}
+	return $tipos;
+}
+
+/** Nem no sitemap do Rank Math. */
+function ctec_tirar_do_sitemap_rank_math( $excluir, $tipo ) {
+	return 'ctec_casal' === $tipo ? true : $excluir;
+}
 
 /** Registra os tipos de post do plugin. */
 function ctec_registrar_tipos() {
@@ -29,7 +44,9 @@ function ctec_registrar_tipos() {
 				'add_new_item'  => 'Adicionar casal',
 				'edit_item'     => 'Editar casal',
 			),
-			'public'       => true,
+			'public'              => true,
+			'exclude_from_search' => true,
+			'show_in_nav_menus'   => false,
 			'rewrite'      => array( 'slug' => 'lua-de-mel', 'with_front' => false ),
 			'supports'     => array( 'title', 'thumbnail' ),
 			'has_archive'  => false,

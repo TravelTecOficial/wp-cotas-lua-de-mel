@@ -3,6 +3,7 @@
 require '/t/bootstrap.php';
 require '/p/includes/casal.php';
 require '/p/includes/pagina.php';
+define( 'CTEC_DIR', '/p/' );
 
 igual( 'R$ 1.500,50', ctec_formatar_valor( 1500.5 ), 'formata 1500.5' );
 igual( 'R$ 50,00', ctec_formatar_valor( 50 ), 'formata 50' );
@@ -48,5 +49,32 @@ contem( 'ctec-capa', $h2, 'capa sem foto ainda renderiza' );
 
 $casal['cidade'] = '';
 contem( '31/10/2026', ctec_render_casal( $casal ), 'só data' );
+
+// robots: noindex só na página do casal
+$GLOBALS['ct_singular'] = 'ctec_casal';
+$r = ctec_robots( array( 'max-image-preview' => 'large', 'index' => true ) );
+ok( ! empty( $r['noindex'] ) && ! empty( $r['nofollow'] ), 'wp_robots dá noindex, nofollow no casal' );
+ok( ! isset( $r['max-image-preview'] ), 'wp_robots sem max-image-preview no casal' );
+igual( array( 'index' => 'noindex', 'follow' => 'nofollow' ), ctec_robots_rank_math( array( 'index' => 'index', 'follow' => 'follow' ) ), 'Rank Math: noindex, nofollow' );
+$GLOBALS['ct_singular'] = 'post';
+igual( array( 'index' => true ), ctec_robots( array( 'index' => true ) ), 'wp_robots não mexe em outras páginas' );
+igual( array( 'index' => 'index' ), ctec_robots_rank_math( array( 'index' => 'index' ) ), 'Rank Math não mexe em outras páginas' );
+ok( in_array( 'ctec_robots', $GLOBALS['ct_ganchos']['wp_robots'], true ), 'filtro wp_robots registrado' );
+ok( in_array( 'ctec_robots_rank_math', $GLOBALS['ct_ganchos']['rank_math/frontend/robots'], true ), 'filtro do Rank Math registrado' );
+ok( empty( $GLOBALS['ct_ganchos']['wp_head'] ) || ! in_array( 'ctec_noindex', $GLOBALS['ct_ganchos']['wp_head'], true ), 'sem meta manual no wp_head' );
+
+// modelo do casal: prioridade 99 (acima do Theme Builder, 11)
+igual( 99, $GLOBALS['ct_prio']['template_include']['ctec_template_casal'], 'template_include na prioridade 99' );
+$GLOBALS['ct_singular'] = 'ctec_casal';
+igual( '/p/templates/casal.php', ctec_template_casal( '/tema/single.php' ), 'casal usa o modelo do plugin' );
+$GLOBALS['ct_singular'] = 'post';
+igual( '/tema/single.php', ctec_template_casal( '/tema/single.php' ), 'outras páginas mantêm o modelo' );
+
+// maxlength dos campos
+contem( 'name="nome" maxlength="80"', $h, 'nome maxlength 80' );
+contem( 'name="presente_nome" maxlength="80"', $h, 'presente_nome maxlength 80' );
+contem( 'name="email" maxlength="100"', $h, 'email maxlength 100' );
+contem( 'name="whatsapp" maxlength="30"', $h, 'whatsapp maxlength 30' );
+contem( 'name="mensagem" rows="3" maxlength="500"', $h, 'mensagem maxlength 500' );
 
 echo "\nFALHAS=" . $GLOBALS['ct_falhas'] . "\n";
