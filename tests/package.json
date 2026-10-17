@@ -1,0 +1,13 @@
+{
+  "name": "cotas-tec-testes",
+  "private": true,
+  "type": "module",
+  "description": "Testes do plugin Cotas Tec (PHP 7.4 e 8.2 por php-wasm). Não vai no zip.",
+  "scripts": {
+    "test": "node run.mjs"
+  },
+  "devDependencies": {
+    "@php-wasm/node": "*",
+    "@php-wasm/universal": "*"
+  }
+}
