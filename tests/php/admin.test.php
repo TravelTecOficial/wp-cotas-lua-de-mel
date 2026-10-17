@@ -17,7 +17,7 @@ function ct_pres( $casal, $cota, $valor, $nome, $msg, $data, $wa = '(11) 91234-5
 ct_casal2( 1, 'Ana e Bia', 'ana-e-bia' );
 ct_casal2( 2, 'Caio e Dani', 'caio-e-dani' );
 ct_pres( 1, 'Ouro', 1500.0, 'João', 'Parabéns; "felizes"!', '2026-10-17 09:05:00' );
-ct_pres( 1, 'Bronze', 50.5, 'Maria', 'Beijos', '2026-10-18 10:00:00' );
+ct_pres( 1, 'Bronze', 50.5, 'Maria', '=1+1', '2026-10-18 10:00:00', '+55 11 91234-5678' );
 ct_pres( 2, 'Prata', 100.0, 'Zé', '', '2026-10-19 11:00:00' );
 
 $csv = ctec_csv_presentes( 1 );
@@ -49,5 +49,9 @@ igual( '', ctec_whatsapp_link( 'abc' ), 'wa: sem número' );
 igual( 'Um dois três', ctec_resumo_mensagem( 'Um dois três', 20 ), 'mensagem curta intacta' );
 contem( '…', ctec_resumo_mensagem( implode( ' ', range( 1, 30 ) ), 20 ), 'mensagem longa cortada' );
 
+contem( ';+55 11 91234-5678;', $csv, 'WhatsApp com + fica como digitado' );
+contem( ";'=1+1", $csv, 'mensagem começando com = ganha apóstrofo' );
+igual( "'\tx", ctec_csv_celula( "\tx" ), 'guarda contra tab inicial' );
+igual( '+55', ctec_csv_celula( '+55', false ), 'sem guarda quando desligada' );
 ok( isset( $GLOBALS['ct_ganchos']['admin_post_ctec_csv'] ), 'gancho do download' );
 ok( isset( $GLOBALS['ct_ganchos']['manage_ctec_presente_posts_columns'] ), 'gancho das colunas' );

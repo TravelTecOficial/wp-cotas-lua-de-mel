@@ -64,9 +64,9 @@ function ctec_resumo_mensagem( $texto, $max = 20 ) {
 }
 
 /** Uma célula de CSV: protege contra fórmulas e põe aspas quando preciso. */
-function ctec_csv_celula( $valor ) {
+function ctec_csv_celula( $valor, $proteger = true ) {
 	$v = (string) $valor;
-	if ( '' !== $v && false !== strpos( '=+-@', $v[0] ) ) {
+	if ( $proteger && '' !== $v && false !== strpos( "=+-@\t\r", $v[0] ) ) {
 		$v = "'" . $v;
 	}
 	if ( preg_match( '/[;"\r\n]/', $v ) ) {
@@ -92,7 +92,7 @@ function ctec_csv_presentes( $casal_id = 0 ) {
 			get_post_meta( $p->ID, '_ctec_whatsapp', true ),
 			get_post_meta( $p->ID, '_ctec_mensagem', true ),
 		);
-		$linhas[] = implode( ';', array_map( 'ctec_csv_celula', $cels ) );
+		$linhas[] = implode( ';', array_map( 'ctec_csv_celula', $cels, array( false, true, true, false, true, true, false, true ) ) );
 	}
 	return "\xEF\xBB\xBF" . implode( "\r\n", $linhas ) . "\r\n";
 }
@@ -150,14 +150,14 @@ function ctec_filtro_casal( $tipo ) {
 	if ( 'ctec_presente' !== $tipo ) {
 		return;
 	}
-	$atual  = isset( $_GET['ctec_casal'] ) ? absint( $_GET['ctec_casal'] ) : 0;
+	$atual  = isset( $_GET['ctec_filtro_casal'] ) ? absint( $_GET['ctec_filtro_casal'] ) : 0;
 	$casais = get_posts( array( 'post_type' => 'ctec_casal', 'post_status' => array( 'publish', 'draft', 'private' ), 'numberposts' => -1, 'orderby' => 'title', 'order' => 'ASC' ) );
-	echo '<select name="ctec_casal"><option value="0">Todos os casais</option>';
+	echo '<select name="ctec_filtro_casal"><option value="0">Todos os casais</option>';
 	foreach ( $casais as $c ) {
 		echo '<option value="' . esc_attr( $c->ID ) . '"' . ( $atual === (int) $c->ID ? ' selected' : '' ) . '>' . esc_html( $c->post_title ) . '</option>';
 	}
 	echo '</select>';
-	$url = wp_nonce_url( admin_url( 'admin-post.php?action=ctec_csv&ctec_casal=' . $atual ), 'ctec_csv' );
+	$url = wp_nonce_url( admin_url( 'admin-post.php?action=ctec_csv&ctec_filtro_casal=' . $atual ), 'ctec_csv' );
 	echo ' <a class="button" href="' . esc_url( $url ) . '">Exportar CSV</a>';
 }
 
@@ -166,7 +166,7 @@ function ctec_filtrar_lista( $query ) {
 	if ( ! is_admin() || ! $query->is_main_query() || 'ctec_presente' !== $query->get( 'post_type' ) ) {
 		return;
 	}
-	$id = isset( $_GET['ctec_casal'] ) ? absint( $_GET['ctec_casal'] ) : 0;
+	$id = isset( $_GET['ctec_filtro_casal'] ) ? absint( $_GET['ctec_filtro_casal'] ) : 0;
 	if ( $id ) {
 		$query->set( 'meta_query', array( array( 'key' => '_ctec_casal', 'value' => $id ) ) );
 	}
@@ -178,7 +178,7 @@ function ctec_baixar_csv() {
 	if ( ! current_user_can( 'edit_posts' ) || ! wp_verify_nonce( $nonce, 'ctec_csv' ) ) {
 		wp_die( 'Sem permissão.', '', array( 'response' => 403 ) );
 	}
-	$id    = isset( $_GET['ctec_casal'] ) ? absint( $_GET['ctec_casal'] ) : 0;
+	$id    = isset( $_GET['ctec_filtro_casal'] ) ? absint( $_GET['ctec_filtro_casal'] ) : 0;
 	$casal = $id ? get_post( $id ) : null;
 	$nome  = 'presentes-' . ( $casal && $casal->post_name ? $casal->post_name : 'todos' ) . '-' . gmdate( 'Y-m-d' ) . '.csv';
 	nocache_headers();
@@ -194,7 +194,7 @@ function ctec_registrar_caixa_total() {
 
 function ctec_desenhar_caixa_total( $post ) {
 	$t   = ctec_total_casal( $post->ID );
-	$url = admin_url( 'edit.php?post_type=ctec_presente&ctec_casal=' . (int) $post->ID );
+	$url = admin_url( 'edit.php?post_type=ctec_presente&ctec_filtro_casal=' . (int) $post->ID );
 	echo '<p><strong>' . (int) $t['qtd'] . ( 1 === $t['qtd'] ? ' presente' : ' presentes' ) . ' · ' . esc_html( ctec_formatar_valor( $t['total'] ) ) . '</strong></p>';
 	echo '<p><a href="' . esc_url( $url ) . '">Ver presentes</a></p>';
 }
