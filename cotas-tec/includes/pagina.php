@@ -104,7 +104,7 @@ function ctec_render_casal( array $casal ) {
 		. '<input type="text" name="ctec_site" value="" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute;left:-9999px">'
 		. '<p class="ctec-erro" role="alert" hidden></p>'
 		. '<button type="submit" class="ctec-btn">Confirmar presente</button></form>'
-		. '<div class="ctec-sucesso" hidden></div></dialog>';
+		. '<div class="ctec-sucesso" hidden><button type="button" class="ctec-fechar" aria-label="Fechar">&times;</button><div class="ctec-sucesso-corpo"></div></div></dialog>';
 
 	return $h . '</div>';
 }
