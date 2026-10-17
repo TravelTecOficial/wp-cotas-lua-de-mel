@@ -91,3 +91,12 @@ function register_activation_hook( $f, $cb ) {}
 function plugin_dir_path( $f ) { return '/p/'; }
 function plugin_dir_url( $f ) { return 'https://exemplo.test/wp-content/plugins/cotas-tec/'; }
 function plugin_basename( $f ) { return 'cotas-tec/cotas-tec.php'; }
+
+// Stubs do cadastro do casal
+function get_post_thumbnail_id( $id ) { return isset( $GLOBALS['ct_meta'][ $id ]['_thumbnail_id'] ) ? (int) $GLOBALS['ct_meta'][ $id ]['_thumbnail_id'] : 0; }
+function wp_unslash( $v ) { return $v; }
+function absint( $v ) { return abs( (int) $v ); }
+function current_user_can( $cap, $id = 0 ) { return ! empty( $GLOBALS['ct_pode'] ); }
+function wp_verify_nonce( $nonce, $acao ) { return $nonce === 'nonce-' . $acao; }
+function wp_create_nonce( $acao ) { return 'nonce-' . $acao; }
+function flush_rewrite_rules() {}

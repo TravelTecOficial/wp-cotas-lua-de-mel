@@ -1,0 +1,6 @@
+.ctec-cotas td { vertical-align: middle; }
+.ctec-cotas input[type="text"] { width: 100%; }
+.ctec-cotas .ctec-valor { max-width: 120px; }
+.ctec-foto { white-space: nowrap; }
+.ctec-foto img { width: 40px; height: 40px; object-fit: cover; vertical-align: middle; margin-right: 6px; border-radius: 3px; }
+.ctec-link-campo { width: 60%; max-width: 480px; }
