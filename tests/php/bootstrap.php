@@ -103,3 +103,20 @@ function flush_rewrite_rules() {}
 function register_rest_route( $ns, $rota, $args = array() ) { $GLOBALS['ct_rotas'][ $ns . $rota ] = $args; return true; }
 function rest_ensure_response( $x ) { return $x; }
 function __return_true() { return true; }
+
+// Stub do painel de presentes
+function get_posts( $args = array() ) {
+	$r = array();
+	foreach ( $GLOBALS['ct_posts'] as $p ) {
+		if ( isset( $args['post_type'] ) && $p->post_type !== $args['post_type'] ) { continue; }
+		if ( isset( $args['post_status'] ) && ! in_array( $p->post_status, (array) $args['post_status'], true ) ) { continue; }
+		$bom = true;
+		foreach ( isset( $args['meta_query'] ) ? $args['meta_query'] : array() as $q ) {
+			if ( is_array( $q ) && isset( $q['key'] ) && (string) get_post_meta( $p->ID, $q['key'], true ) !== (string) $q['value'] ) { $bom = false; }
+		}
+		if ( $bom ) { $r[] = $p; }
+	}
+	usort( $r, function ( $a, $b ) { return strcmp( isset( $b->post_date ) ? $b->post_date : '', isset( $a->post_date ) ? $a->post_date : '' ); } );
+	return $r;
+}
+function is_admin() { return true; }

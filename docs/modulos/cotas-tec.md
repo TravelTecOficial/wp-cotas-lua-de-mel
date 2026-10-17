@@ -7,9 +7,8 @@ os dados da conta do casal para depósito. O casal recebe e-mail; a agência vê
 Sem pagamento online. Desenho completo: `docs/superpowers/specs/2026-10-17-cotas-tec-design.md`.
 
 ## Etapas
-- Pronta no DEV: 0.1.0 esqueleto, testes, empacotador e atualizador (17/10/2026), ainda não instalado em site.
-- Em andamento: casal (tipo de post, cotas, rotas).
-- Falta: página pública, presentear (formulário, e-mail, gravação), painel de presentes + CSV, release no GitHub.
+- Pronta nesta branch (feat/0.1.0, 17/10/2026, ainda não instalada em site): esqueleto, atualizador, cadastro do casal, página pública, presentear (formulário, e-mail, gravação) e painel de presentes (colunas, filtro, CSV, total no casal).
+- Falta: publicar 0.1.0 (release no GitHub) e testar no site-modelo.
 - No PROD: nada.
 
 ## Regras e decisões do dono
@@ -32,4 +31,4 @@ Site de teste: site-modelo do Voucher Tec (yellowgreen-termite-955684), nunca lo
 Repo `TravelTecOficial/cotas-tec` e release com anexo `cotas-tec.zip`; só com OK do dono.
 
 ## Próximo passo
-Task 2: tipo de post do casal, cotas padrão e rotas (adicionar `register_activation_hook`).
+Publicar a 0.1.0 e testar no site-modelo do Voucher Tec (só com OK do dono).
