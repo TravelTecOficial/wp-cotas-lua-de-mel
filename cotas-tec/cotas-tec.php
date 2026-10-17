@@ -17,7 +17,7 @@ define( 'CTEC_DIR', plugin_dir_path( __FILE__ ) );
 define( 'CTEC_URL', plugin_dir_url( __FILE__ ) );
 define( 'CTEC_BASENAME', plugin_basename( __FILE__ ) );
 
-foreach ( array( 'casal', 'atualizador' ) as $ctec_arquivo ) {
+foreach ( array( 'casal', 'pagina', 'atualizador' ) as $ctec_arquivo ) {
 	require_once CTEC_DIR . 'includes/' . $ctec_arquivo . '.php';
 }
 
