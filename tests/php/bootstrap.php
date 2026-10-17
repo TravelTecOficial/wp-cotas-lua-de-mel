@@ -100,3 +100,6 @@ function current_user_can( $cap, $id = 0 ) { return ! empty( $GLOBALS['ct_pode']
 function wp_verify_nonce( $nonce, $acao ) { return $nonce === 'nonce-' . $acao; }
 function wp_create_nonce( $acao ) { return 'nonce-' . $acao; }
 function flush_rewrite_rules() {}
+function register_rest_route( $ns, $rota, $args = array() ) { $GLOBALS['ct_rotas'][ $ns . $rota ] = $args; return true; }
+function rest_ensure_response( $x ) { return $x; }
+function __return_true() { return true; }
