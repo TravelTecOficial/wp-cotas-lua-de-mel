@@ -5,12 +5,12 @@ require __DIR__ . '/bootstrap.php';
 $principal = file_get_contents( '/p/cotas-tec.php' );
 ok( 1 === preg_match( '/^\s*\*\s*Version:\s*(\S+)/m', $principal, $m ), 'cabeçalho tem Version:' );
 $cabecalho = isset( $m[1] ) ? $m[1] : '';
-igual( '0.1.0', $cabecalho, 'Version do cabeçalho é 0.1.0' );
+igual( '0.1.1', $cabecalho, 'Version do cabeçalho é 0.1.1' );
 ok( 1 === preg_match( "/define\( 'CTEC_VERSION', '([^']+)' \)/", $principal, $c ), 'CTEC_VERSION definida' );
 igual( $cabecalho, isset( $c[1] ) ? $c[1] : '', 'CTEC_VERSION == Version do cabeçalho' );
 
 $changelog = is_file( '/c/CHANGELOG.md' ) ? file_get_contents( '/c/CHANGELOG.md' ) : '';
-contem( '## 0.1.0', $changelog, 'CHANGELOG.md tem ## 0.1.0' );
+contem( '## 0.1.1', $changelog, 'CHANGELOG.md tem ## 0.1.1' );
 
 $arquivos = glob( '/p/includes/*.php' );
 ok( count( $arquivos ) > 0, 'includes/ tem arquivos' );
@@ -36,12 +36,12 @@ ok( $GLOBALS['ct_prio']['init']['ctec_conferir_versao'] > $GLOBALS['ct_prio']['i
 $GLOBALS['ct_flush'] = 0;
 ctec_conferir_versao();
 igual( 1, $GLOBALS['ct_flush'], 'versão nova (sem opção) renova as regras' );
-igual( '0.1.0', get_option( 'ctec_versao' ), 'opção ctec_versao gravada' );
+igual( '0.1.1', get_option( 'ctec_versao' ), 'opção ctec_versao gravada' );
 ctec_conferir_versao();
 igual( 1, $GLOBALS['ct_flush'], 'mesma versão não renova de novo' );
 update_option( 'ctec_versao', '0.0.9' );
 ctec_conferir_versao();
 igual( 2, $GLOBALS['ct_flush'], 'versão diferente renova' );
-igual( '0.1.0', get_option( 'ctec_versao' ), 'opção atualizada' );
+igual( '0.1.1', get_option( 'ctec_versao' ), 'opção atualizada' );
 
 echo "\nFALHAS=" . $GLOBALS['ct_falhas'] . "\n";

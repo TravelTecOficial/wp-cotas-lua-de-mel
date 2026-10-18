@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.1.1 (18/10/2026)
+- Atualizador passa a consultar o repositório renomeado TravelTecOficial/wp-cotas-lua-de-mel.
+
 ## 0.1.0 (17/10/2026)
 - Plugin Cotas Tec: cabeçalho, atualizador pelo GitHub, empacotador e testes (PHP 7.4 e 8.2).
 - Cadastro do casal: tipo de post, cotas (nome, valor, foto), e-mail e dados para depósito.
