@@ -1,0 +1,72 @@
+# Publica a release sozinho quando a versão do plugin muda no main.
+# Lê "Version:" do cotas-tec.php; se a tag v<versão> ainda não existe, roda os testes,
+# gera dist/cotas-tec.zip e cria a release com as notas daquela versão no CHANGELOG.md.
+name: Release
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "cotas-tec/**"
+      - "CHANGELOG.md"
+      - ".github/workflows/release.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Ler versão
+        id: versao
+        run: |
+          V=$(grep -m1 -E '^\s*\*\s*Version:' cotas-tec/cotas-tec.php | sed -E 's/.*Version:\s*//' | tr -d '[:space:]')
+          echo "versao=$V" >> "$GITHUB_OUTPUT"
+          if gh release view "v$V" >/dev/null 2>&1; then
+            echo "existe=sim" >> "$GITHUB_OUTPUT"
+            echo "Release v$V já existe, nada a fazer."
+          else
+            echo "existe=nao" >> "$GITHUB_OUTPUT"
+          fi
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      - uses: actions/setup-node@v4
+        if: steps.versao.outputs.existe == 'nao'
+        with:
+          node-version: 22
+
+      - name: Testes
+        if: steps.versao.outputs.existe == 'nao'
+        working-directory: tests
+        run: |
+          npm ci
+          node run.mjs
+
+      - name: Empacotar
+        if: steps.versao.outputs.existe == 'nao'
+        run: python3 empacotar.py
+
+      - name: Notas do CHANGELOG
+        if: steps.versao.outputs.existe == 'nao'
+        run: |
+          V="${{ steps.versao.outputs.versao }}"
+          awk -v v="## $V" 'index($0, v)==1 {f=1; next} /^## /{f=0} f' CHANGELOG.md > notas.md
+          test -s notas.md || { echo "CHANGELOG.md não tem a seção ## $V"; exit 1; }
+          cat notas.md
+
+      - name: Publicar release
+        if: steps.versao.outputs.existe == 'nao'
+        run: |
+          V="${{ steps.versao.outputs.versao }}"
+          gh release create "v$V" dist/cotas-tec.zip --target "$GITHUB_SHA" --title "$V" --notes-file notas.md
+        env:
+          GH_TOKEN: ${{ github.token }}
