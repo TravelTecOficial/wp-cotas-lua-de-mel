@@ -30,7 +30,7 @@ Repo `C:/Users/User/Documents/Clientes/_wordpress-base/padrao/plugin-cotas`, pas
 Site de teste: site-modelo do Voucher Tec (yellowgreen-termite-955684), nunca localhost.
 
 ## Pendências de PROD
-Repo `TravelTecOficial/cotas-tec` e release com anexo `cotas-tec.zip`; só com OK do dono.
+Repo `TravelTecOficial/wp-cotas-lua-de-mel` e release com anexo `cotas-tec.zip`; só com OK do dono.
 
 ## Próximo passo
 Publicar a 0.1.0 e testar no site-modelo do Voucher Tec (só com OK do dono).

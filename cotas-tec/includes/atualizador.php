@@ -19,7 +19,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'CTEC_REPO', 'TravelTecOficial/cotas-tec' );
+define( 'CTEC_REPO', 'TravelTecOficial/wp-cotas-lua-de-mel' );
 define( 'CTEC_ANEXO', 'cotas-tec.zip' );
 define( 'CTEC_CACHE', 'ctec_release' );
 
