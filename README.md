@@ -1,4 +1,4 @@
-# Cotas Tec
+# Travel Tec - Cotas de Lua-de-Mel
 
 Plugin WordPress de cotas de lua de mel: a agência cadastra casais, cada casal tem uma página pública com cotas, e os convidados escolhem o presente e veem os dados da conta para depósito. Sem pagamento online.
 
